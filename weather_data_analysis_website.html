@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Data Analysis</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --blue: #2563eb;
+      --sky: #eaf3ff;
+      --ink: #172033;
+      --muted: #64748b;
+      --card: #ffffff;
+      --line: #e5eaf2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f7fb;
+      color: var(--ink);
+    }
+    header {
+      background: linear-gradient(120deg, #155eef, #38a4e8);
+      color: white;
+      padding: 42px 20px;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 10px; font-size: clamp(28px, 5vw, 42px); }
+    header p { margin: 0; opacity: .95; }
+    main { width: min(1100px, 92%); margin: 28px auto 50px; }
+    .intro {
+      background: white; border-radius: 14px; padding: 20px 22px;
+      box-shadow: 0 4px 18px #1d355710; margin-bottom: 22px;
+      line-height: 1.6;
+    }
+    .section-title { margin: 28px 0 14px; font-size: 22px; }
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .card, .panel {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 14px; padding: 18px;
+      box-shadow: 0 4px 16px #1d355708;
+    }
+    .card .label { color: var(--muted); font-size: 13px; margin-bottom: 9px; }
+    .card .value { font-size: 27px; font-weight: 700; color: var(--blue); }
+    .card .sub { color: var(--muted); font-size: 12px; margin-top: 5px; }
+    .charts {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 18px;
+    }
+    .panel h3 { margin: 0 0 16px; font-size: 17px; }
+    .chart-wrap { position: relative; height: 280px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { background: var(--sky); color: #1e40af; }
+    tr:last-child td { border-bottom: 0; }
+    .observations { line-height: 1.8; padding-left: 22px; }
+    footer { text-align: center; padding: 22px; color: var(--muted); font-size: 13px; }
+    .note { color: var(--muted); font-size: 13px; margin-top: 12px; }
+    @media (max-width: 500px) {
+      header { padding: 32px 16px; }
+      .chart-wrap { height: 240px; }
+      th, td { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>☀️ Weather Data Analysis</h1>
+    <p>Temperature and rainfall analysis using sample weather data</p>
+  </header>
+
+  <main>
+    <section class="intro">
+      <h2>About This Project</h2>
+      <p>
+        This mini project analyzes temperature and rainfall for 10 sample days.
+        It calculates average, maximum and minimum values, identifies the hottest
+        and coldest days, and presents the results using charts.
+      </p>
+      <p class="note"><strong>Note:</strong> The values below are illustrative sample data, not live weather observations.</p>
+    </section>
+
+    <h2 class="section-title">Weather Summary</h2>
+    <section class="cards" id="summary"></section>
+
+    <h2 class="section-title">Weather Charts</h2>
+    <section class="charts">
+      <div class="panel">
+        <h3>Daily Temperature</h3>
+        <div class="chart-wrap"><canvas id="temperatureChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Daily Rainfall</h3>
+        <div class="chart-wrap"><canvas id="rainfallChart"></canvas></div>
+      </div>
+      <div class="panel" style="grid-column: 1 / -1;">
+        <h3>Temperature and Rainfall Comparison</h3>
+        <div class="chart-wrap"><canvas id="comparisonChart"></canvas></div>
+      </div>
+    </section>
+
+    <h2 class="section-title">Daily Weather Dataset</h2>
+    <section class="panel table-wrap">
+      <table>
+        <thead><tr><th>Day</th><th>Temperature (°C)</th><th>Rainfall (mm)</th></tr></thead>
+        <tbody id="weatherTable"></tbody>
+      </table>
+    </section>
+
+    <h2 class="section-title">Observations</h2>
+    <section class="panel">
+      <ul class="observations" id="observations"></ul>
+    </section>
+  </main>
+
+  <footer>Weather Data Analysis Mini Project · Python / NumPy / Matplotlib concept</footer>
+
+  <script>
+    // Sample data from the Python project
+    const days = ["Day 1", "Day 2", "Day 3", "Day 4", "Day 5",
+                  "Day 6", "Day 7", "Day 8", "Day 9", "Day 10"];
+    const temperature = [25, 28, 30, 27, 32, 29, 26, 31, 24, 28];
+    const rainfall = [5, 0, 10, 15, 2, 8, 20, 0, 12, 6];
+
+    // Calculations corresponding to NumPy functions
+    const mean = values => values.reduce((sum, value) => sum + value, 0) / values.length;
+    const total = values => values.reduce((sum, value) => sum + value, 0);
+    const max = values => Math.max(...values);
+    const min = values => Math.min(...values);
+    const hottestIndex = temperature.indexOf(max(temperature));
+    const coldestIndex = temperature.indexOf(min(temperature));
+    const wettestIndex = rainfall.indexOf(max(rainfall));
+
+    const stats = [
+      ["Average Temperature", `${mean(temperature).toFixed(1)} °C`, "Across 10 days"],
+      ["Maximum Temperature", `${max(temperature)} °C`, days[hottestIndex]],
+      ["Minimum Temperature", `${min(temperature)} °C`, days[coldestIndex]],
+      ["Total Rainfall", `${total(rainfall)} mm`, "Across 10 days"],
+      ["Average Rainfall", `${mean(rainfall).toFixed(1)} mm`, "Per day"],
+      ["Maximum Rainfall", `${max(rainfall)} mm`, days[wettestIndex]]
+    ];
+
+    document.getElementById("summary").innerHTML = stats.map(item => `
+      <article class="card">
+        <div class="label">${item[0]}</div>
+        <div class="value">${item[1]}</div>
+        <div class="sub">${item[2]}</div>
+      </article>
+    `).join("");
+
+    document.getElementById("weatherTable").innerHTML = days.map((day, i) => `
+      <tr><td>${day}</td><td>${temperature[i]}</td><td>${rainfall[i]}</td></tr>
+    `).join("");
+
+    document.getElementById("observations").innerHTML = [
+      `The average temperature is ${mean(temperature).toFixed(1)} °C.`,
+      `${days[hottestIndex]} is the hottest day at ${max(temperature)} °C.`,
+      `${days[coldestIndex]} is the coldest day at ${min(temperature)} °C.`,
+      `${days[wettestIndex]} has the highest rainfall at ${max(rainfall)} mm.`,
+      `The total rainfall across the 10 days is ${total(rainfall)} mm.`,
+      `Rainfall was zero on Day 2 and Day 8.`
+    ].map(text => `<li>${text}</li>`).join("");
+
+    Chart.defaults.font.family = "Arial, sans-serif";
+    new Chart(document.getElementById("temperatureChart"), {
+      type: "line",
+      data: {
+        labels: days,
+        datasets: [{
+          label: "Temperature (°C)", data: temperature,
+          borderColor: "#2563eb", backgroundColor: "rgba(37,99,235,.15)",
+          pointBackgroundColor: "#2563eb", pointRadius: 4, tension: .3, fill: true
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { title: { display: true, text: "Temperature (°C)" } } }
+      }
+    });
+
+    new Chart(document.getElementById("rainfallChart"), {
+      type: "bar",
+      data: {
+        labels: days,
+        datasets: [{
+          label: "Rainfall (mm)", data: rainfall,
+          backgroundColor: "#38a4e8", borderRadius: 5
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, title: { display: true, text: "Rainfall (mm)" } } }
+      }
+    });
+
+    new Chart(document.getElementById("comparisonChart"), {
+      type: "line",
+      data: {
+        labels: days,
+        datasets: [
+          { label: "Temperature (°C)", data: temperature, borderColor: "#2563eb",
+            backgroundColor: "#2563eb", yAxisID: "y", tension: .3 },
+          { label: "Rainfall (mm)", data: rainfall, borderColor: "#0d9488",
+            backgroundColor: "#0d9488", yAxisID: "y1", tension: .3 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          y: { type: "linear", position: "left", title: { display: true, text: "Temperature (°C)" } },
+          y1: { type: "linear", position: "right", title: { display: true, text: "Rainfall (mm)" },
+                grid: { drawOnChartArea: false }, beginAtZero: true }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
